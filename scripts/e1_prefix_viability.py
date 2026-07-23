@@ -5,7 +5,7 @@ import argparse
 import torch
 
 from bytemoe.blocks import execute_expert, random_order, static_importance_order
-from bytemoe.hf_adapter import choose_expert, replacement_hook
+from bytemoe.hf_adapter import choose_expert, find_swiglu_experts, replacement_hook
 from scripts.common import DEFAULT_MODEL, load_model, load_prompts, prompt_batches, write_json
 
 
@@ -17,6 +17,30 @@ def logits_for(model, batches):
             positions = batch["attention_mask"].sum(dim=1).sub(1)
             output.append(logits[torch.arange(logits.shape[0], device=logits.device), positions].detach().float().cpu())
     return torch.cat(output, dim=0)
+
+
+def choose_active_expert(model, batches, contains: str | None):
+    candidates = find_swiglu_experts(model)
+    if contains:
+        candidates = [expert for expert in candidates if contains in expert.name]
+    if not candidates:
+        raise RuntimeError("No eligible SwiGLU experts were found.")
+    token_counts = [0] * len(candidates)
+    handles = []
+    for index, candidate in enumerate(candidates):
+        def count_tokens(_module, inputs, _output, index=index):
+            if inputs and isinstance(inputs[0], torch.Tensor):
+                token_counts[index] += inputs[0].shape[0]
+        handles.append(candidate.module.register_forward_hook(count_tokens))
+    logits_for(model, batches)
+    for handle in handles:
+        handle.remove()
+    best_index = max(range(len(candidates)), key=token_counts.__getitem__)
+    if token_counts[best_index] == 0:
+        raise RuntimeError("No routed expert received tokens for the supplied prompts.")
+    expert = candidates[best_index]
+    print(f"Auto-selected active expert [{best_index}] {expert.name} ({token_counts[best_index]} routed tokens).")
+    return expert
 
 
 def score_prefix(model, expert, order, fraction, reference_logits, batches):
@@ -43,7 +67,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="E1: importance-ordered prefix viability gate")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--dtype", choices=("fp16", "bf16", "fp32"), default="fp16")
-    parser.add_argument("--expert-index", type=int, default=0)
+    parser.add_argument("--expert-index", type=int, default=-1, help="-1 automatically selects the most-active routed expert")
     parser.add_argument("--expert-contains")
     parser.add_argument("--fractions", type=float, nargs="+", default=(0.25, 0.5))
     parser.add_argument("--random-seeds", type=int, nargs="+", default=(11, 29, 47))
@@ -56,9 +80,13 @@ def main() -> None:
     args = parser.parse_args()
 
     model, tokenizer, device = load_model(args.model, args.dtype)
-    expert = choose_expert(model, args.expert_contains, args.expert_index)
     prompts = load_prompts(args.prompt_file, args.prompt_copies)
     batches = list(prompt_batches(tokenizer, device, prompts, args.batch_size, args.max_length))
+    expert = (
+        choose_active_expert(model, batches, args.expert_contains)
+        if args.expert_index == -1
+        else choose_expert(model, args.expert_contains, args.expert_index)
+    )
     reference_logits = logits_for(model, batches)
     importance = static_importance_order(expert.weights).to(device)
     results = []

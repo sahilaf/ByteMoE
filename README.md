@@ -55,10 +55,11 @@ a model-specific adapter rather than trusting these measurements.
    python -m scripts.e0_exactness --list-experts
    ```
 
-6. Run E0 on an expert that appears in the list (begin with index 0):
+6. Run E0. The default expert index `-1` automatically selects the most-active
+   expert for the supplied prompts:
 
    ```bash
-   python -m scripts.e0_exactness --expert-index 0 --blocks 16 --prompt-copies 4
+   python -m scripts.e0_exactness --expert-index -1 --blocks 16 --prompt-copies 4
    ```
 
    Continue only if `passed: True`; inspect
@@ -67,7 +68,7 @@ a model-specific adapter rather than trusting these measurements.
 7. Run E1 using the same expert:
 
    ```bash
-   python -m scripts.e1_prefix_viability --expert-index 0 --fractions 0.25 0.5 --prompt-copies 8
+   python -m scripts.e1_prefix_viability --expert-index -1 --fractions 0.25 0.5 --prompt-copies 8
    ```
 
    Continue only if `passed: True` and an ordered prefix beats the mean random
