@@ -78,8 +78,8 @@ a model-specific adapter rather than trusting these measurements.
    then run E2 with those dimensions:
 
    ```bash
-   python -m scripts.e2_microbenchmark --hidden-size 2048 --intermediate-size 8192 \
-     --block-widths 64 128 256 512 1024 2048 --repetitions 100
+   python -m scripts.e2_microbenchmark --hidden-size 2048 --intermediate-size 1024 \
+     --block-widths 32 64 128 256 512 --repetitions 100
    ```
 
    The CSV reports one-block transfer/compute latency and the whole-expert
