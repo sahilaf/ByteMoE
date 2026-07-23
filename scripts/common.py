@@ -32,7 +32,13 @@ def load_model(model_id: str, dtype: str):
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch_dtype)
+    # `dtype` is the current Transformers API. Low-memory loading avoids
+    # temporarily duplicating checkpoint shards in host RAM.
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+    )
     model.eval().to(device)
     return model, tokenizer, device
 

@@ -25,8 +25,9 @@ a model-specific adapter rather than trusting these measurements.
 
 ## Run on a T4 Colab instance
 
-1. Create a Colab notebook with a T4 GPU enabled, then clone/upload this
-   folder and change into it.
+1. Open `ByteMoE_E0_E2_Colab.ipynb` in Colab with a T4 GPU enabled. The
+   notebook mounts Google Drive and persists the repository, Hugging Face cache,
+   and `results/` under `MyDrive/ByteMoEColab`.
 2. Install PyTorch appropriate to the Colab CUDA runtime, then install the
    remaining packages:
 
@@ -46,7 +47,8 @@ a model-specific adapter rather than trusting these measurements.
    python -m pytest -q
    ```
 
-5. List model experts. This downloads the model on first run:
+5. List model experts. This downloads the model on first run; the download is
+   cached in Drive and can resume after a Colab disconnect:
 
    ```bash
    python -m scripts.e0_exactness --list-experts
