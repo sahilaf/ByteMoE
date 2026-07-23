@@ -48,6 +48,10 @@ a model-specific adapter rather than trusting these measurements.
    python -m pytest -q
    ```
 
+   The Colab notebook also builds a persistent file of 512 distinct WikiText-2
+   prompts for E1. For command-line runs, create an equivalent one-prompt-per-
+   line file and provide it with `--prompt-file`.
+
 5. List model experts. This downloads the model on first run; the download is
    cached in Drive and can resume after a Colab disconnect:
 
