@@ -26,8 +26,9 @@ a model-specific adapter rather than trusting these measurements.
 ## Run on a T4 Colab instance
 
 1. Open `ByteMoE_E0_E2_Colab.ipynb` in Colab with a T4 GPU enabled. The
-   notebook mounts Google Drive and persists the repository, Hugging Face cache,
-   and `results/` under `MyDrive/ByteMoEColab`.
+   notebook mounts Google Drive and persists the Hugging Face cache and
+   `results/` under `MyDrive/ByteMoEColab`; it clones the Git repository to the
+   local Colab disk on each new runtime.
 2. Install PyTorch appropriate to the Colab CUDA runtime, then install the
    remaining packages:
 
