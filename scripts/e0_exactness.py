@@ -61,11 +61,15 @@ def main() -> None:
     capture.remove()
     if not captured:
         raise RuntimeError(f"Expert {expert.name} was not routed for these prompts; choose another expert or add prompts.")
+    # Captured activations were created under inference_mode by `logits_for`.
+    # Keep the reconstruction arithmetic in the same mode: inference tensors
+    # cannot be used by an autograd-tracked operation outside this context.
     direct_errors = []
-    for hidden in captured:
-        full = execute_expert(hidden, expert.weights)
-        rebuilt = execute_blocks(hidden, expert.weights, blocks)
-        direct_errors.append(max_metrics(full, rebuilt))
+    with torch.inference_mode():
+        for hidden in captured:
+            full = execute_expert(hidden, expert.weights)
+            rebuilt = execute_blocks(hidden, expert.weights, blocks)
+            direct_errors.append(max_metrics(full, rebuilt))
 
     # End-to-end verification: replace that expert by the sum of all packed blocks.
     hook = expert.module.register_forward_hook(replacement_hook(expert.weights, lambda x, w: execute_blocks(x, w, blocks)))
